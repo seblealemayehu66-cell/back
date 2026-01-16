@@ -1,28 +1,19 @@
+// models/User.js
 import mongoose from "mongoose";
-import AutoIncrementFactory from "mongoose-sequence";
 
-// Initialize AutoIncrement
-const AutoIncrement = AutoIncrementFactory(mongoose);
+const userSchema = new mongoose.Schema({
+  username: String,
+  email: { type: String, unique: true },
+  password: String,
 
-const userSchema = new mongoose.Schema(
-  {
-    username: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    balance: { type: Number, default: 0 },
-    totalDeposited: { type: Number, default: 0 },
-    totalWithdrawn: { type: Number, default: 0 },
-    lastTrades: { type: Array, default: [] },
-    // NEW: UID field
-    uid: { type: Number, unique: true },
-  },
-  { timestamps: true }
-);
+  balance: { type: Number, default: 0 },
 
-// Apply auto-increment plugin for UID
-userSchema.plugin(AutoIncrement, { inc_field: "uid" });
+  withdrawPassword: String,
+  kycStatus: { type: String, default: "pending" },
 
-const User = mongoose.model("User", userSchema);
+  createdAt: { type: Date, default: Date.now }
+});
 
-export default User;
+export default mongoose.model("User", userSchema);
+
 
