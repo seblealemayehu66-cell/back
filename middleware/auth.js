@@ -1,15 +1,31 @@
-// middleware/auth.js
-import jwt from "jsonwebtoken";
+import express from "express";
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
-export const authUser = (req, res, next) => {
-  const token = req.headers.authorization;
-  if (!token) return res.status(401).json({ error: "No token" });
+const router = express.Router();
 
+router.post("/register", async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
+    const { username, email, password } = req.body;
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Email already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({ message: "User registered successfully", uid: newUser.uid });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Registration failed" });
   }
-};
+});
+
+export default router;
