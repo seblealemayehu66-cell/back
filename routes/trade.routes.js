@@ -3,11 +3,11 @@ import express from "express";
 import User from "../models/User.js";
 import Trade from "../models/Trade.js";
 import Settings from "../models/Settings.js";
-import { authUser } from "../middleware/auth.js";
+
 
 const router = express.Router();
 
-router.post("/open", authUser, async (req, res) => {
+router.post("/open", async (req, res) => {
   const { amount, duration } = req.body;
   const user = await User.findById(req.user.id);
   const settings = await Settings.findOne();
