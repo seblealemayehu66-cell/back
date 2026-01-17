@@ -7,6 +7,12 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import tradeRoutes from "./routes/trade.routes.js";
+import cors from "cors";
+
+app.use(cors({
+  origin: "*",
+}));
+
 
 dotenv.config();
 
