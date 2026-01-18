@@ -21,7 +21,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/trade", tradeRoutes);
-app.use("/api/wallet", walletRoutes); // optional
 
 // ===== HEALTH CHECK =====
 app.get("/", (req, res) => res.send("Backend is running 🚀"));
