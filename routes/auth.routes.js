@@ -1,4 +1,3 @@
-// routes/auth.routes.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -17,39 +16,35 @@ router.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // check existing user
     const exist = await User.findOne({ email });
     if (exist) {
-      return res.json({ error: "User already exists" });
+      return res.status(400).json({ message: "User already exists" });
     }
 
-    // hash password
     const hashed = await bcrypt.hash(password, 10);
 
-    // 🔥 AUTO INCREMENT UID
     const uid = await getNextUid();
 
-    // create user
     const user = await User.create({
       uid,
       username,
       email,
-      password: hashed
+      password: hashed,
+      balance: 1000, // demo balance
     });
 
-    // notification
     await Notification.create({
-      message: `New user registered: ${email}`
+      message: `New user registered: ${email}`,
     });
 
-    res.json({
+    res.status(201).json({
       success: true,
-      uid: user.uid
+      uid: user.uid,
     });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -62,10 +57,12 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.json({ error: "User not found" });
+    if (!user)
+      return res.status(401).json({ message: "User not found" });
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.json({ error: "Wrong password" });
+    if (!ok)
+      return res.status(401).json({ message: "Wrong password" });
 
     const token = jwt.sign(
       { id: user._id },
@@ -75,12 +72,18 @@ router.post("/login", async (req, res) => {
 
     res.json({
       token,
-      user
+      user: {
+        uid: user.uid,
+        username: user.username,
+        email: user.email,
+        balance: user.balance,
+      },
     });
 
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 export default router;
+
