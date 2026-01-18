@@ -7,8 +7,6 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import tradeRoutes from "./routes/trade.routes.js";
-import walletRoutes from "./routes/wallet.routes.js"; // if exists
-
 // Load environment variables first
 dotenv.config();
 
