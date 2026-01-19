@@ -7,8 +7,7 @@ import cors from "cors";
 // ===== LOAD ROUTES =====
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import tradeRoutes from "./routes/trade.routes.js";
-import userRoutes from "./routes/user.routes.js"; // optional route to fetch by UID
+import tradeRoutes from "./routes/trade.routes.js"; // optional route to fetch by UID
 
 // ===== LOAD ENVIRONMENT VARIABLES =====
 dotenv.config();
