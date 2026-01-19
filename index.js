@@ -23,7 +23,6 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 app.use("/api/auth", authRoutes);    // register, login, current user
 app.use("/api/admin", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
-app.use("/api/users", userRoutes);   // fetch user by UID
 
 // ===== HEALTH CHECK =====
 app.get("/", (req, res) => res.send("Backend is running 🚀"));
