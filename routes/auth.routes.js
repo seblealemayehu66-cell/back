@@ -26,7 +26,7 @@ router.post("/register", async (req, res) => {
       username,
       email,
       password: hashed,
-      balance, // demo balance
+    
     });
 
     await Notification.create({
