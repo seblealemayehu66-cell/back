@@ -1,4 +1,3 @@
-// routes/auth.routes.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -6,7 +5,6 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import getNextUid from "../middleware/getNextUid.js";
-import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -17,26 +15,20 @@ router.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Check if user exists
     const exist = await User.findOne({ email });
     if (exist) return res.status(400).json({ message: "User already exists" });
 
-    // Hash password
     const hashed = await bcrypt.hash(password, 10);
-
-    // Auto-increment UID
     const uid = await getNextUid();
 
-    // Create user with default balance
     const user = await User.create({
       uid,
       username,
       email,
       password: hashed,
-      balance: 1000,
+      balance: 1000, // demo balance
     });
 
-    // Create notification
     await Notification.create({
       message: `New user registered: ${email}`,
     });
@@ -45,7 +37,6 @@ router.post("/register", async (req, res) => {
       success: true,
       uid: user.uid,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -65,8 +56,9 @@ router.post("/login", async (req, res) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ message: "Wrong password" });
 
-    // Generate token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({
       token,
@@ -77,7 +69,6 @@ router.post("/login", async (req, res) => {
         balance: user.balance,
       },
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -85,18 +76,17 @@ router.post("/login", async (req, res) => {
 });
 
 // ======================
-// GET CURRENT USER (BALANCE)
+// GET CURRENT USER
 // ======================
+import authMiddleware from "../middleware/auth.middleware.js";
+
 router.get("/me", authMiddleware, async (req, res) => {
-  // req.user is populated by authMiddleware
-  res.json({
-    uid: req.user.uid,
-    username: req.user.username,
-    email: req.user.email,
-    balance: req.user.balance,
-  });
+  // user attached in middleware
+  const { uid, username, email, balance } = req.user;
+  res.json({ uid, username, email, balance });
 });
 
 export default router;
+
 
 
