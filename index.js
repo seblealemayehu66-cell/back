@@ -7,7 +7,10 @@ import cors from "cors";
 // ===== LOAD ROUTES =====
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
-import tradeRoutes from "./routes/trade.routes.js"; // optional route to fetch by UID
+import tradeRoutes from "./routes/trade.routes.js"; 
+import adminWalletRoutes from "./routes/adminWallet.routes.js";
+// optional route to fetch by UID
+
 
 // ===== LOAD ENVIRONMENT VARIABLES =====
 dotenv.config();
@@ -23,6 +26,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 app.use("/api/auth", authRoutes);    // register, login, current user
 app.use("/api/admin", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
+app.use("/api/admin/wallets", adminWalletRoutes);
 
 // ===== HEALTH CHECK =====
 app.get("/", (req, res) => res.send("Backend is running 🚀"));
