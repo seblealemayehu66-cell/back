@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import getNextUid from "../middleware/getNextUid.js";
+ import Wallet from "../models/Wallet.js";
 
 const router = express.Router();
 
@@ -28,6 +29,24 @@ router.post("/register", async (req, res) => {
       password: hashed,
     
     });
+   
+
+const coins = [
+  { coin: "Bitcoin", symbol: "BTC" },
+  { coin: "Ethereum", symbol: "ETH" },
+  { coin: "Solana", symbol: "SOL" },
+  { coin: "Dogecoin", symbol: "DOGE" },
+  { coin: "BNB", symbol: "BNB" }
+];
+
+for (const c of coins) {
+  await Wallet.create({
+    userId: user._id,
+    coin: c.coin,
+    symbol: c.symbol
+  });
+}
+
 
     await Notification.create({
       message: `New user registered: ${email}`,
