@@ -26,7 +26,7 @@ router.get("/", auth, async (req, res) => {
     // 3️⃣ Format wallet data
     const walletData = wallets.map((w) => ({
       coin: w.coin,
-      symbol: w.symbol.toUpperCase(),
+    symbol: w.symbol || w.coin?.slice(0, 3).toUpperCase(),
       balance: w.amount,
     }));
 
@@ -48,4 +48,5 @@ router.get("/", auth, async (req, res) => {
 });
 
 export default router;
+
 
