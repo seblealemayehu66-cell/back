@@ -8,6 +8,10 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import tradeRoutes from "./routes/trade.routes.js"; 
+import walletRoutes from "./routes/wallet.routes.js";
+
+
+
 
 // optional route to fetch by UID
 
@@ -27,6 +31,7 @@ app.use("/api/auth", authRoutes);    // register, login, current user
 app.use("/api/admin", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
 app.use("/api/admin/wallets", adminRoutes);
+app.use("/api/wallet", walletRoutes);
 
 // ===== HEALTH CHECK =====
 app.get("/", (req, res) => res.send("Backend is running 🚀"));
