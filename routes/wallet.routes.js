@@ -17,7 +17,7 @@ const router = express.Router();
 router.get("/", auth, async (req, res) => {
   try {
     // 1️⃣ Get current logged-in user from JWT
-    const user = await User.findById(req.userId).select("balance uid");
+    const user = await User.findById(req.userId).select("balance");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // 2️⃣ Get all wallet coins for the user
@@ -48,6 +48,7 @@ router.get("/", auth, async (req, res) => {
 });
 
 export default router;
+
 
 
 
