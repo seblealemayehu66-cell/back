@@ -1,31 +1,44 @@
-import express from "express";
+import jwt from "jsonwebtoken";
 import User from "../models/User.js";
-import bcrypt from "bcryptjs";
 
-const router = express.Router();
-
-router.post("/register", async (req, res) => {
+const auth = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
+    const header = req.headers.authorization;
 
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Email already exists" });
+    if (!header || !header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        message: "No token provided"
+      });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const token = header.split(" ")[1];
 
-    const newUser = new User({
-      username,
-      email,
-      password: hashedPassword,
-    });
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
-    await newUser.save();
+    const user = await User.findById(decoded.id).select(
+      "_id uid balance email"
+    );
 
-    res.status(201).json({ message: "User registered successfully", uid: newUser.uid });
+    if (!user) {
+      return res.status(401).json({
+        message: "User not found"
+      });
+    }
+
+    // attach user to request
+    req.user = user;
+    req.userId = user._id;
+
+    next();
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Registration failed" });
+    return res.status(401).json({
+      message: "Invalid or expired token"
+    });
   }
-});
+};
 
-export default router;
+export default auth;
+
