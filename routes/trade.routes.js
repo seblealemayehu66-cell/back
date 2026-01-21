@@ -1,33 +1,45 @@
 import express from "express";
 import User from "../models/User.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import Trade from "../models/Trade.js";
+import Settings from "../models/Settings.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// PLACE TRADE
-router.post("/", authMiddleware, async (req, res) => {
-  try {
-    const { coinId, price, amount } = req.body;
+router.post("/", auth, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  const settings = await Settings.findOne();
 
-    const user = req.user; // fetched from middleware
+  const amount = req.body.amount;
+  let profit = 0;
+  let result = "lose";
 
-    if (amount > user.balance) {
-      return res.status(400).json({ message: "Insufficient balance" });
-    }
-
+  if (settings?.tradingOpen) {
+    profit = amount * 0.85;
+    user.balance += profit;
+    result = "win";
+  } else {
     user.balance -= amount;
-    await user.save();
-
-    res.json({
-      message: "Trade successful",
-      balance: user.balance,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Trade failed" });
   }
+
+  await user.save();
+
+  await Trade.create({
+    userId: user._id,
+    coin: req.body.coinId,
+    amount,
+    profit,
+    result
+  });
+
+  res.json({
+    balance: user.balance,
+    result,
+    profit
+  });
 });
 
 export default router;
+
 
 
