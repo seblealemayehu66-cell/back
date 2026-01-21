@@ -5,50 +5,39 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-/*
-  GET /api/wallet
-  Returns:
-  [
-    { coin: "Tether", symbol: "USDT", balance: user.balance },
-    { coin: "Bitcoin", symbol: "BTC", balance: wallet.amount },
-    ...
-  ]
-*/
 router.get("/", auth, async (req, res) => {
   try {
-    // 1️⃣ Get current logged-in user from JWT
+    // USDT from user model
     const user = await User.findById(req.userId).select("balance");
-    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 2️⃣ Get all wallet coins for the user
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // coins from wallet model
     const wallets = await Wallet.find({ userId: req.userId });
 
-    // 3️⃣ Format wallet data
-    const walletData = wallets.map((w) => ({
+    const coins = wallets.map((w) => ({
       coin: w.coin,
-      symbol: w.coin.slice(0, 3).toUpperCase(),
-      balance: w.amount,
+      symbol: w.symbol,
+      balance: w.balance || 0,
     }));
 
-    // 4️⃣ Include USDT from user balance
+    // final wallet response
     const data = [
       {
         coin: "Tether",
         symbol: "USDT",
         balance: user.balance,
       },
-      ...walletData,
+      ...coins,
     ];
 
     res.json(data);
-  } catch (error) {
-    console.error("Error fetching wallet:", error);
-    res.status(500).json({ message: "Server error fetching wallet" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Wallet fetch failed" });
   }
 });
 
 export default router;
-
-
-
-
