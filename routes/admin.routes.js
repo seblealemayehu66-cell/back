@@ -1,97 +1,56 @@
-// routes/admin.routes.js
+// routes/adminwallet.routes.js
 import express from "express";
+import AdminWallet from "../models/AdminWallet.js"; // wallet model
+import auth from "../middleware/auth.js"; // JWT middleware
 import User from "../models/User.js";
-import Settings from "../models/Settings.js";
-import AdminWallet from "../models/AdminWallet.js"; // <-- import wallet model
-import auth from "../middleware/auth.js"; // optional: protect routes with JWT
 
 const router = express.Router();
 
 // =========================
-// USERS ROUTES
+// ADMIN ROUTES
 // =========================
 
-// GET USERS
-router.get("/users", auth, async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// ADD BALANCE TO USER
-router.post("/add-balance", auth, async (req, res) => {
-  try {
-    const { userId, amount } = req.body;
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.balance += amount;
-    await user.save();
-
-    res.json({ success: true, user });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// =========================
-// TRADING SETTINGS
-// =========================
-
-// OPEN / CLOSE TRADING
-router.post("/trade-control", auth, async (req, res) => {
-  try {
-    const { open } = req.body;
-    let settings = await Settings.findOne();
-    if (!settings) settings = await Settings.create({});
-    settings.tradingOpen = open;
-    await settings.save();
-
-    res.json(settings);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// =========================
-// WALLET ROUTES
-// =========================
-
-// GET ALL WALLETS
+// GET ALL WALLETS (Admin only)
 router.get("/wallets", auth, async (req, res) => {
   try {
-    const wallets = await AdminWallet.find().sort({ createdAt: -1 });
+    // Optional: check if req.user.isAdmin
+    const wallets = await AdminWallet.find().sort({ createdAt: -1 }).populate("userid", "username email");
     res.json(wallets);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch wallets" });
   }
 });
 
-// ADD NEW WALLET
+// ADD NEW WALLET (Admin only)
 router.post("/wallets/add", auth, async (req, res) => {
   try {
-    const { coin, network, address } = req.body;
+    const { userid, coin, network, address } = req.body;
 
-    const exists = await AdminWallet.findOne({ address });
-    if (exists) return res.status(400).json({ message: "Address already exists" });
+    if (!userid || !coin || !network || !address) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-    const wallet = await AdminWallet.create({ coin, network, address });
+    // Check if wallet already exists for this user
+    const exists = await AdminWallet.findOne({ userid, coin, network });
+    if (exists) return res.status(400).json({ message: "Wallet already exists for this user" });
+
+    const wallet = await AdminWallet.create({ userid, coin, network, address, active: true, balance: 0 });
     res.json(wallet);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to add wallet" });
   }
 });
 
-// DELETE WALLET
+// DELETE WALLET (Admin only)
 router.delete("/wallets/:id", auth, async (req, res) => {
   try {
     await AdminWallet.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete wallet" });
   }
 });
 
@@ -105,9 +64,34 @@ router.put("/wallets/:id/toggle", auth, async (req, res) => {
     await wallet.save();
     res.json(wallet);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to toggle wallet status" });
+  }
+});
+
+// =========================
+// USER ROUTES
+// =========================
+
+// GET wallets for a specific user (only for the logged-in user)
+router.get("/user/:userid", auth, async (req, res) => {
+  try {
+    const { userid } = req.params;
+
+    // Ensure user can only fetch their own wallets
+    if (req.user.id !== userid) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const wallets = await AdminWallet.find({ userid, active: true }).select(
+      "coin network address balance"
+    );
+
+    res.json(wallets);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch wallets" });
   }
 });
 
 export default router;
-
