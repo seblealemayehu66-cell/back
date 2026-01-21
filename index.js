@@ -3,6 +3,9 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
+import adminSetupRoutes from "./routes/admin.setup.routes.js";
+
+
 
 
 
@@ -43,6 +46,7 @@ app.use("/api/admin/wallets", adminRoutes);
 app.use("/api", authRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/setup", adminSetupRoutes);
 
 
 
