@@ -3,7 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
-import accountRoutes from "./routes/account.routes.js";
+
 
 // ===== LOAD ROUTES =====
 import authRoutes from "./routes/auth.routes.js";
@@ -32,7 +32,7 @@ app.use("/api/auth", authRoutes);    // register, login, current user
 app.use("/api/admin", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
 app.use("/api/admin/wallets", adminRoutes);
-app.use("/api/account", accountRoutes);
+
 
 
 // ===== HEALTH CHECK =====
