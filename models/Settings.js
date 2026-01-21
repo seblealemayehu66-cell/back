@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
-export default mongoose.model(
-  "Settings",
-  new mongoose.Schema({
-    tradingOpen: { type: Boolean, default: true }
-  })
-);
+const settingsSchema = new mongoose.Schema({
+  tradingOpen: { type: Boolean, default: true },
+});
+
+export default mongoose.model("Settings", settingsSchema);
+
 
