@@ -7,63 +7,101 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 
 // ====== USERS ======
+// Get all users
 router.get("/users", auth, async (req, res) => {
-  const users = await User.find().select("username email balance _id");
-  res.json(users);
+  try {
+    const users = await User.find().select("username email balance _id");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-// ADD BALANCE
+// ====== ADD BALANCE ======
 router.post("/users/:id/add", auth, async (req, res) => {
-  const { coin, amount } = req.body; // default USDT
-  const user = await User.findById(req.params.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
+  try {
+    const { coin, amount } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-  user.balance += Number(amount);
-  await user.save();
-  res.json(user);
+    if (!coin || !user.balance.hasOwnProperty(coin)) {
+      return res.status(400).json({ message: "Invalid coin" });
+    }
+
+    user.balance[coin] += Number(amount);
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-// DEDUCT BALANCE
+// ====== DEDUCT BALANCE ======
 router.post("/users/:id/deduct", auth, async (req, res) => {
-  const { coin, amount } = req.body;
-  const user = await User.findById(req.params.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
+  try {
+    const { coin, amount } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-  user.balance -= Number(amount);
-  if (user.balance < 0) user.balance = 0;
-  await user.save();
-  res.json(user);
+    if (!coin || !user.balance.hasOwnProperty(coin)) {
+      return res.status(400).json({ message: "Invalid coin" });
+    }
+
+    user.balance[coin] -= Number(amount);
+    if (user.balance[coin] < 0) user.balance[coin] = 0;
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ====== WALLETS ======
 router.get("/wallets", auth, async (req, res) => {
-  const wallets = await AdminWallet.find();
-  res.json(wallets);
+  try {
+    const wallets = await AdminWallet.find();
+    res.json(wallets);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 router.post("/wallets", auth, async (req, res) => {
-  const { coin, network, address } = req.body;
-  const exists = await AdminWallet.findOne({ address });
-  if (exists) return res.status(400).json({ message: "Address exists" });
+  try {
+    const { coin, network, address } = req.body;
+    const exists = await AdminWallet.findOne({ address });
+    if (exists) return res.status(400).json({ message: "Address exists" });
 
-  const wallet = await AdminWallet.create({ coin, network, address });
-  res.json(wallet);
+    const wallet = await AdminWallet.create({ coin, network, address });
+    res.json(wallet);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ====== TRADING ======
 router.get("/trading-status", auth, async (req, res) => {
-  const settings = await Settings.findOne() || await Settings.create({});
-  res.json({ tradingOpen: settings.tradingOpen });
+  try {
+    const settings = (await Settings.findOne()) || (await Settings.create({}));
+    res.json({ tradingOpen: settings.tradingOpen });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 router.post("/trading-status", auth, async (req, res) => {
-  const { tradingOpen } = req.body;
-  const settings = await Settings.findOne() || await Settings.create({});
-  settings.tradingOpen = tradingOpen;
-  await settings.save();
-  res.json(settings);
+  try {
+    const { tradingOpen } = req.body;
+    const settings = (await Settings.findOne()) || (await Settings.create({}));
+    settings.tradingOpen = tradingOpen;
+    await settings.save();
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 export default router;
+
 
 
