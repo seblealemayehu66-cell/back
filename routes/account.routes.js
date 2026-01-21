@@ -1,56 +1,45 @@
-// routes/account.routes.js
 import express from "express";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 import AdminWallet from "../models/AdminWallet.js";
+import Deposit from "../models/Deposit.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Auth middleware
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) return res.status(401).json({ message: "No token" });
-
-  const token = authHeader.split(" ")[1];
+/* =============================
+   GET ACTIVE DEPOSIT WALLETS
+============================= */
+router.get("/wallets", auth, async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-};
-
-// Get user info and balances
-router.get("/me", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const wallets = await AdminWallet.find({ active: true }); // all active admin wallets
-    res.json({ user, wallets });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    const wallets = await AdminWallet.find({ active: true });
+    res.json(wallets);
+  } catch {
+    res.status(500).json({ message: "Failed to load wallets" });
   }
 });
 
-// Withdraw request (simple example)
-router.post("/withdraw", authMiddleware, async (req, res) => {
+/* =============================
+   CREATE DEPOSIT REQUEST
+============================= */
+router.post("/deposit", auth, async (req, res) => {
   try {
-    const { coin, amount, address } = req.body;
-    const user = await User.findById(req.user.id);
+    const { coin, network, amount, txid } = req.body;
 
-    if (!user) return res.status(404).json({ message: "User not found" });
-    if (amount <= 0 || amount > (user.balance[coin] || 0)) return res.status(400).json({ message: "Insufficient balance" });
+    const deposit = await Deposit.create({
+      userId: req.user.id,
+      coin,
+      network,
+      amount,
+      txid
+    });
 
-    user.balance[coin] -= amount;
-    await user.save();
-
-    // Here you would create a transaction record or trigger actual withdrawal logic
-    res.json({ message: `Withdrawal of ${amount} ${coin} to ${address} requested successfully` });
+    res.json({
+      success: true,
+      deposit
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Deposit failed" });
   }
 });
 
 export default router;
+
