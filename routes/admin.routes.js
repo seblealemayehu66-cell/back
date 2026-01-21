@@ -3,11 +3,42 @@ import express from "express";
 import AdminWallet from "../models/AdminWallet.js"; // wallet model
 import auth from "../middleware/auth.js"; // JWT middleware
 import User from "../models/User.js";
+ import Deposit from "../models/Deposit.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
 // =========================
-// ADMIN ROUTES
+//
+
+/* =============================
+   GET ALL DEPOSITS
+============================= */
+router.get("/deposits", auth, async (req, res) => {
+  const deposits = await Deposit.find().populate("userId");
+  res.json(deposits);
+});
+
+/* =============================
+   APPROVE DEPOSIT
+============================= */
+router.post("/deposits/:id/approve", auth, async (req, res) => {
+  const deposit = await Deposit.findById(req.params.id);
+  if (!deposit) return res.status(404).json({ message: "Not found" });
+
+  if (deposit.status !== "pending")
+    return res.json({ message: "Already processed" });
+
+  deposit.status = "approved";
+  await deposit.save();
+
+  const user = await User.findById(deposit.userId);
+  user.balance += deposit.amount;
+  await user.save();
+
+  res.json({ success: true });
+});
+
 // =========================
 
 // GET ALL WALLETS (Admin only)
