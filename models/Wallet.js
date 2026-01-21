@@ -2,17 +2,26 @@ import mongoose from "mongoose";
 
 const walletSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
+    coin: {
+      type: String,
+      required: true,
+      uppercase: true
     },
 
-    coin: String,   // Bitcoin
-    symbol: String, // BTC
+    network: {
+      type: String,
+      required: true,
+      uppercase: true
+    },
 
-    balance: {
-      type: Number,
-      default: 0
+    address: {
+      type: String,
+      required: true
+    },
+
+    status: {
+      type: Boolean,
+      default: true
     }
   },
   { timestamps: true }
