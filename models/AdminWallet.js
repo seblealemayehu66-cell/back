@@ -1,15 +1,10 @@
 import mongoose from "mongoose";
 
-export default mongoose.model(
-  "AdminWallet",
-  new mongoose.Schema(
-    {
-      coin: String,
-      network: String,
-      address: String,
-      active: { type: Boolean, default: true }
-    },
-    { timestamps: true }
-  )
-);
+const adminWalletSchema = new mongoose.Schema({
+  coin: { type: String, required: true },
+  network: { type: String, required: true },
+  address: { type: String, required: true, unique: true },
+  active: { type: Boolean, default: true },
+}, { timestamps: true });
 
+export default mongoose.model("AdminWallet", adminWalletSchema);
