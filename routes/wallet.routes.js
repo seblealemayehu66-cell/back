@@ -1,6 +1,6 @@
 import express from "express";
 import Wallet from "../models/Wallet.js";
-import authMiddleware from "../middleware/authMiddleware.js";
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -14,3 +14,4 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 export default router;
+
