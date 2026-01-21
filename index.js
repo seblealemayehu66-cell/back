@@ -5,6 +5,10 @@ import dotenv from "dotenv";
 import cors from "cors";
 import adminSetupRoutes from "./routes/admin.setup.routes.js";
 
+import walletRoutes from "./routes/wallet.routes.js";
+import adminWalletRoutes from "./routes/admin.wallet.routes.js";
+
+
 
 
 
@@ -46,6 +50,9 @@ app.use("/api/admin/wallets", adminRoutes);
 app.use("/api", authRoutes);
 app.use("/api/admin/login", adminAuthRoutes);
 app.use("/api/setup", adminSetupRoutes);
+
+app.use("/api/wallets", walletRoutes);
+app.use("/api/admin", adminWalletRoutes);
 
 
 
