@@ -34,7 +34,7 @@ router.post("/register", async (req, res) => {
       username,
       email,
       password: hashed,
-      balance: 0, // default balance
+      balance: { BTC: 0, ETH: 0, USDT: 0 }, // default balance
     });
 
     // create default wallets
