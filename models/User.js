@@ -11,7 +11,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
 
-  balance: { type: Number, default: 0 },
+  balance: {
+    BTC: { type: Number, default: 0 },
+    ETH: { type: Number, default: 0 },
+    USDT: { type: Number, default: 0 }
+  },
 
   withdrawPassword: String,
   kycStatus: { type: String, default: "pending" },
