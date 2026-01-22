@@ -8,7 +8,7 @@ const router = express.Router();
  * ADD WALLET
  * Admin can add a new wallet with coin, symbol, network, address, qrCode
  */
-router.post("/wallets", adminAuth, async (req, res) => {
+router.post("/adminwallets", adminAuth, async (req, res) => {
   try {
     const { coin, symbol, network, address, qrCode } = req.body;
 
@@ -34,7 +34,7 @@ router.post("/wallets", adminAuth, async (req, res) => {
 /**
  * UPDATE WALLET
  */
-router.put("/wallets/:id", adminAuth, async (req, res) => {
+router.put("/adminwallets/:id", adminAuth, async (req, res) => {
   try {
     const { coin, symbol, network, address, qrCode } = req.body;
 
@@ -56,7 +56,7 @@ router.put("/wallets/:id", adminAuth, async (req, res) => {
 /**
  * DELETE WALLET
  */
-router.delete("/wallets/:id", adminAuth, async (req, res) => {
+router.delete("/adminwallets/:id", adminAuth, async (req, res) => {
   try {
     await AdminWallet.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Wallet deleted" });
@@ -69,7 +69,7 @@ router.delete("/wallets/:id", adminAuth, async (req, res) => {
 /**
  * GET ALL WALLETS (ADMIN)
  */
-router.get("/wallets", adminAuth, async (req, res) => {
+router.get("/adminwallets", adminAuth, async (req, res) => {
   try {
     const wallets = await AdminWallet.find().sort({ createdAt: -1 });
     res.json(wallets);
@@ -82,7 +82,7 @@ router.get("/wallets", adminAuth, async (req, res) => {
 /**
  * GET WALLET BY SYMBOL (for user page)
  */
-router.get("/wallets/:symbol", async (req, res) => {
+router.get("/adminwallets/:symbol", async (req, res) => {
   try {
     const { symbol } = req.params;
     const wallet = await AdminWallet.findOne({ symbol });
