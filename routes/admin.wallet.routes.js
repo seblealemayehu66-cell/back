@@ -1,27 +1,32 @@
 import express from "express";
-import Wallet from "../models/Wallet.js";
+import AdminWallet from "../models/AdminWallet.js";
 import adminAuth from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
 /**
  * ADD WALLET
+ * Admin can add a new wallet with coin, symbol, network, address, qrCode
  */
 router.post("/wallets", adminAuth, async (req, res) => {
   try {
-    const { coin, network, address } = req.body;
+    const { coin, symbol, network, address, qrCode } = req.body;
 
-    const wallet = await Wallet.create({
+    if (!coin || !symbol || !network || !address) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const wallet = await AdminWallet.create({
       coin,
+      symbol,
       network,
-      address
+      address,
+      qrCode: qrCode || "" // optional
     });
 
-    res.json({
-      success: true,
-      wallet
-    });
+    res.json({ success: true, wallet });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -31,14 +36,19 @@ router.post("/wallets", adminAuth, async (req, res) => {
  */
 router.put("/wallets/:id", adminAuth, async (req, res) => {
   try {
-    const wallet = await Wallet.findByIdAndUpdate(
+    const { coin, symbol, network, address, qrCode } = req.body;
+
+    const wallet = await AdminWallet.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { coin, symbol, network, address, qrCode },
       { new: true }
     );
 
-    res.json(wallet);
+    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+
+    res.json({ success: true, wallet });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -47,16 +57,41 @@ router.put("/wallets/:id", adminAuth, async (req, res) => {
  * DELETE WALLET
  */
 router.delete("/wallets/:id", adminAuth, async (req, res) => {
-  await Wallet.findByIdAndDelete(req.params.id);
-  res.json({ success: true });
+  try {
+    await AdminWallet.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Wallet deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 /**
  * GET ALL WALLETS (ADMIN)
  */
 router.get("/wallets", adminAuth, async (req, res) => {
-  const wallets = await Wallet.find().sort({ createdAt: -1 });
-  res.json(wallets);
+  try {
+    const wallets = await AdminWallet.find().sort({ createdAt: -1 });
+    res.json(wallets);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/**
+ * GET WALLET BY SYMBOL (for user page)
+ */
+router.get("/wallets/:symbol", async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const wallet = await AdminWallet.findOne({ symbol });
+    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
+    res.json(wallet);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 export default router;
