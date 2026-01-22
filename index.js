@@ -51,7 +51,7 @@ app.use("/api", authRoutes);
 app.use("/api/admin/login", adminAuthRoutes);
 app.use("/api/setup", adminSetupRoutes);
 
-app.use("/api/wallets", walletRoutes);
+app.use("/api/account", walletRoutes);
 app.use("/api/admin", adminWalletRoutes);
 
 
