@@ -7,6 +7,10 @@ import adminSetupRoutes from "./routes/admin.setup.routes.js";
 
 import walletRoutes from "./routes/wallet.routes.js";
 import adminWalletRoutes from "./routes/admin.wallet.routes.js";
+import publicAdminWalletRoutes from "./routes/public.adminwallet.routes.js";
+
+// Public routes
+
 
 
 
@@ -53,6 +57,7 @@ app.use("/api/setup", adminSetupRoutes);
 
 app.use("/api/account", walletRoutes);
 app.use("/api/admin", adminWalletRoutes);
+app.use("/api/public", publicAdminWalletRoutes);
 
 
 
