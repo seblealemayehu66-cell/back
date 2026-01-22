@@ -1,17 +1,27 @@
 import express from "express";
-import Wallet from "../models/Wallet.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import auth from "../middleware/auth.js";
+import UserWallet from "../models/Wallet.js";
 
 const router = express.Router();
 
-/**
- * USER FETCH WALLETS AFTER LOGIN
- */
-router.get("/", authMiddleware, async (req, res) => {
-  const wallets = await Wallet.find({ status: true });
 
-  res.json(wallets);
+// ======================
+// GET USER WALLETS
+// ======================
+router.get("/wallets", auth, async (req, res) => {
+  try {
+    const wallets = await UserWallet.find({
+      userId: req.user._id,
+    }).sort({ createdAt: 1 });
+
+    res.json(wallets);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 export default router;
+
+
 
