@@ -1,70 +1,118 @@
 import express from "express";
 import Trade from "../models/Trade.js";
 import Settings from "../models/Settings.js";
+import User from "../models/User.js";
 import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Place trade
+/* ================= PLACE TRADE ================= */
+
 router.post("/", authMiddleware, async (req, res) => {
-  const { coin, pair, direction, amount, price, deliveryTime } = req.body;
-  const user = req.user;
+  try {
+    const {
+      coin,
+      pair,
+      direction,
+      amount,
+      price,
+      deliveryTime
+    } = req.body;
 
-  if (amount > user.balance[coin]) return res.status(400).json({ message: "Insufficient balance" });
+    const user = await User.findById(req.user._id);
 
-  user.balance[coin] -= amount;
-  await user.save();
-
-  const settings = await Settings.findOne();
-
-  const trade = await Trade.create({
-    userId: user._id,
-    coin,
-    pair,
-    direction,
-    amount,
-    price,
-    deliveryTime,
-    status: "pending",
-  });
-
-  // Auto-close trade after deliveryTime
-  setTimeout(async () => {
-    const t = await Trade.findById(trade._id);
-    const u = await Trade.model("User").findById(t.userId);
-
-    let profitLoss = 0;
-    if (!settings?.tradingOpen) {
-      // Trading closed → always lose
-      profitLoss = -t.amount * (t.percentage / 100);
-    } else {
-      // Random demo result
-      const win = Math.random() > 0.5;
-      profitLoss = (win && t.direction === "up") || (!win && t.direction === "down")
-        ? t.amount * (t.percentage / 100)
-        : -t.amount * (t.percentage / 100);
+    if (!user.balance[coin] || amount > user.balance[coin]) {
+      return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    t.profitLoss = profitLoss;
-    t.status = "closed";
-    t.closedAt = new Date();
-    await t.save();
+    // deduct balance immediately
+    user.balance[coin] -= amount;
+    await user.save();
 
-    u.balance[t.coin] += t.amount + profitLoss - t.amount * (t.fee / 100);
-    await u.save();
-  }, deliveryTime * 1000);
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({});
 
-  res.json({ trade, balance: user.balance });
+    const percentage = settings.profitPercent || 15;
+
+    // entry price (fake market)
+    const entryPrice =
+      price || Number((60000 + Math.random() * 2000).toFixed(2));
+
+    const trade = await Trade.create({
+      userId: user._id,
+      coin,
+      pair,
+      direction,
+      amount,
+      entryPrice,
+      deliveryTime,
+      percentage,
+      status: "pending"
+    });
+
+    /* ================= AUTO CLOSE ================= */
+
+    setTimeout(async () => {
+      const t = await Trade.findById(trade._id);
+      if (!t || t.status === "closed") return;
+
+      const u = await User.findById(t.userId);
+
+      let profitLoss = 0;
+      let closePrice = t.entryPrice;
+
+      // ❌ TRADING CLOSED → ALWAYS LOSE
+      if (!settings.tradingOpen) {
+        profitLoss = -(t.amount * percentage) / 100;
+
+        closePrice = Number(
+          (t.entryPrice - t.entryPrice * (percentage / 1000)).toFixed(2)
+        );
+      }
+
+      // ✅ TRADING OPEN → ALWAYS PROFIT
+      else {
+        profitLoss = (t.amount * percentage) / 100;
+
+        closePrice = Number(
+          (t.entryPrice + t.entryPrice * (percentage / 1000)).toFixed(2)
+        );
+      }
+
+      // update trade
+      t.closePrice = closePrice;
+      t.profitLoss = profitLoss;
+      t.status = "closed";
+      t.closedAt = new Date();
+
+      await t.save();
+
+      // return balance
+      u.balance[t.coin] += t.amount + profitLoss;
+      await u.save();
+
+    }, deliveryTime * 1000);
+
+    res.json({
+      message: "Trade placed successfully",
+      trade,
+      balance: user.balance
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Trade execution failed" });
+  }
 });
 
-// Get user trades
+/* ================= USER TRADES ================= */
+
 router.get("/", authMiddleware, async (req, res) => {
-  const trades = await Trade.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  const trades = await Trade.find({
+    userId: req.user._id
+  }).sort({ createdAt: -1 });
+
   res.json(trades);
 });
 
 export default router;
-
-
-
-
