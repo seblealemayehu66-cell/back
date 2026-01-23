@@ -1,107 +1,42 @@
 import express from "express";
 import User from "../models/User.js";
-import AdminWallet from "../models/AdminWallet.js";
-import Settings from "../models/Settings.js";
-import auth from "../middleware/auth.js";
+import { authAdmin } from "../middleware/authAdmin.js"; // Protect admin routes
 
 const router = express.Router();
 
-// ====== USERS ======
-// Get all users
-router.get("/users", auth, async (req, res) => {
+// GET all users (protected)
+router.get("/users", authAdmin, async (req, res) => {
   try {
-    const users = await User.find().select("username email balance _id");
+    const users = await User.find().select("-password"); // exclude password
     res.json(users);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch users error:", err);
+    res.status(500).json({ message: "Failed to fetch users" });
   }
 });
 
-// ====== ADD BALANCE ======
-router.post("/users/:id/add", auth, async (req, res) => {
+// Add balance to user (protected)
+router.post("/users/add-balance", authAdmin, async (req, res) => {
+  const { userId, symbol, amount } = req.body;
+  if (!userId || !symbol || !amount) return res.status(400).json({ message: "All fields are required" });
+
   try {
-    const { coin, amount } = req.body;
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!coin || !user.balance.hasOwnProperty(coin)) {
-      return res.status(400).json({ message: "Invalid coin" });
-    }
+    user.balance = user.balance || {};
+    user.balance[symbol] = (user.balance[symbol] || 0) + Number(amount);
 
-    user.balance[coin] += Number(amount);
     await user.save();
-    res.json(user);
+    res.json({ message: "Balance updated", balance: user.balance });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ====== DEDUCT BALANCE ======
-router.post("/users/:id/deduct", auth, async (req, res) => {
-  try {
-    const { coin, amount } = req.body;
-    const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (!coin || !user.balance.hasOwnProperty(coin)) {
-      return res.status(400).json({ message: "Invalid coin" });
-    }
-
-    user.balance[coin] -= Number(amount);
-    if (user.balance[coin] < 0) user.balance[coin] = 0;
-    await user.save();
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ====== WALLETS ======
-router.get("/wallets", auth, async (req, res) => {
-  try {
-    const wallets = await AdminWallet.find();
-    res.json(wallets);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.post("/wallets", auth, async (req, res) => {
-  try {
-    const { coin, network, address } = req.body;
-    const exists = await AdminWallet.findOne({ address });
-    if (exists) return res.status(400).json({ message: "Address exists" });
-
-    const wallet = await AdminWallet.create({ coin, network, address });
-    res.json(wallet);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ====== TRADING ======
-router.get("/trading-status", auth, async (req, res) => {
-  try {
-    const settings = (await Settings.findOne()) || (await Settings.create({}));
-    res.json({ tradingOpen: settings.tradingOpen });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.post("/trading-status", auth, async (req, res) => {
-  try {
-    const { tradingOpen } = req.body;
-    const settings = (await Settings.findOne()) || (await Settings.create({}));
-    settings.tradingOpen = tradingOpen;
-    await settings.save();
-    res.json(settings);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Add balance error:", err);
+    res.status(500).json({ message: "Failed to add balance" });
   }
 });
 
 export default router;
+
 
 
 
