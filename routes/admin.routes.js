@@ -5,7 +5,7 @@ import  adminAuth  from "../middleware/adminAuth.js"; // Protect admin routes
 const router = express.Router();
 
 // GET all users (protected)
-router.get("/users", authAdmin, async (req, res) => {
+router.get("/users", adminAuth, async (req, res) => {
   try {
     const users = await User.find().select("-password"); // exclude password
     res.json(users);
