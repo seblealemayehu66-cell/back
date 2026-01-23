@@ -1,22 +1,26 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 import Admin from "./models/Admin.js";
 
-dotenv.config();
+mongoose.connect(process.env.MONGO_URI);
 
-await mongoose.connect(process.env.MONGO_URI);
+async function createAdmin() {
+  const email = "admin@gmail.com";
+  const password = "admin123";
 
-const exists = await Admin.findOne({ email: "admin@gmail.com" });
+  const hash = await bcrypt.hash(password, 10);
 
-if (!exists) {
   await Admin.create({
-    email: "admin@gmail.com",
-    password: "admin123"
+    email,
+    password: hash
   });
 
   console.log("✅ Admin created");
-} else {
-  console.log("ℹ️ Admin already exists");
+  console.log("Email:", email);
+  console.log("Password:", password);
+
+  process.exit();
 }
 
-process.exit();
+createAdmin();
+
