@@ -9,15 +9,14 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error("MongoDB connection error:", err));
 
 async function createAdmin() {
-  const email = "admin@test.com"; // you can change this
-  const password = "admin123";
+  const email = "admin@gmail.com"; // keep same admin email
+  const password = "admin123";     // new password you want to reset
 
   const hash = await bcrypt.hash(password, 10);
 
-  // check if admin exists
   const existing = await Admin.findOne({ email });
   if (existing) {
-    existing.password = hash; // reset password if exists
+    existing.password = hash;   // RESET password
     await existing.save();
     console.log("⚠️ Admin password reset");
   } else {
@@ -32,4 +31,3 @@ async function createAdmin() {
 }
 
 createAdmin();
-
