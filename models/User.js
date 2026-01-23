@@ -14,7 +14,17 @@ const userSchema = new mongoose.Schema({
   balance: {
     BTC: { type: Number, default: 0 },
     ETH: { type: Number, default: 0 },
-    USDT: { type: Number, default: 0 }
+    USDT: { type: Number, default: 0 },
+      SOL: { type: Number, default: 0 },
+      BNB: { type: Number, default: 0 },
+      ADA: { type: Number, default: 0 },
+      XRP: { type: Number, default: 0 },
+      DOT: { type: Number, default: 0 },
+      DOGE: { type: Number, default: 0 },
+      LTC: { type: Number, default: 0 },
+      AVAX: { type: Number, default: 0 },
+      SHIB: { type: Number, default: 0 },
+    
   },
 
   withdrawPassword: String,
