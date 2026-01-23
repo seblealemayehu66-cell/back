@@ -1,6 +1,9 @@
 import express from "express";
 import User from "../models/User.js";
 import  adminAuth  from "../middleware/adminAuth.js"; // Protect admin routes
+import Trade from "../models/Trade.js";
+import Settings from "../models/Settings.js";
+import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -34,8 +37,45 @@ router.post("/users/add-balance", adminAuth, async (req, res) => {
     res.status(500).json({ message: "Failed to add balance" });
   }
 });
+router.post("/toggle-trade", authMiddleware, async (req, res) => {
+  const settings = (await Settings.findOne()) || (await Settings.create({}));
+  settings.tradingOpen = !settings.tradingOpen;
+  await settings.save();
+  res.json({ tradingOpen: settings.tradingOpen });
+});
+
+// Get all trades
+router.get("/trades", authMiddleware, async (req, res) => {
+  const trades = await Trade.find().populate("userId").sort({ createdAt: -1 });
+  res.json(trades);
+});
+
+// Close a trade manually
+router.post("/close-trade/:id", authMiddleware, async (req, res) => {
+  const trade = await Trade.findById(req.params.id);
+  if (!trade) return res.status(404).json({ message: "Trade not found" });
+  if (trade.status === "closed") return res.status(400).json({ message: "Trade already closed" });
+
+  // Always close as loss if admin manually closes
+  const user = await Trade.model("User").findById(trade.userId);
+  const profitLoss = -trade.amount * (trade.percentage / 100);
+
+  trade.status = "closed";
+  trade.profitLoss = profitLoss;
+  trade.closedAt = new Date();
+  await trade.save();
+
+  user.balance[trade.coin] += trade.amount + profitLoss - trade.amount * (trade.fee / 100);
+  await user.save();
+
+  res.json({ trade, userBalance: user.balance });
+});
+
 
 export default router;
+
+
+
 
 
 
