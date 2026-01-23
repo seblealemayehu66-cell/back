@@ -1,6 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
-import { authAdmin } from "../middleware/authAdmin.js"; // Protect admin routes
+import { adminAuth } from "../middleware/adminAuth.js"; // Protect admin routes
 
 const router = express.Router();
 
