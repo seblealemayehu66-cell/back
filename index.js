@@ -48,7 +48,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded data
 
 // ===== ROUTES =====
 app.use("/api/auth", authRoutes);    // register, login, current user
-app.use("/api/admin/base", adminRoutes);  // admin routes (if you have any)
+app.use("/api/admin/", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
 app.use("/api/admin/wallets", adminRoutes);
 app.use("/api", authRoutes);
