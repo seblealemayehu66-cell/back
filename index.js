@@ -52,7 +52,7 @@ app.use("/api/admin", adminRoutes);  // admin routes (if you have any)
 app.use("/api/trade", tradeRoutes);  // trading
 app.use("/api/admin/wallets", adminRoutes);
 app.use("/api", authRoutes);
-app.use("/api/admin/", adminAuthRoutes);
+app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/setup", adminSetupRoutes);
 
 app.use("/api/account", walletRoutes);
