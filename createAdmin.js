@@ -1,43 +1,35 @@
+import dotenv from "dotenv";
+dotenv.config();
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Admin from "./models/Admin.js";
 
-const mongoUri = "mongodb+srv://admin:miracle12345678@cluster0.i7ocwve.mongodb.net/crypto_db?retryWrites=true&w=majority";
-
-mongoose.connect(mongoUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log("✅ MongoDB connected"))
-.catch(err => {
-  console.error("❌ MongoDB connection error:", err);
-  process.exit(1);
-});
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
 async function createAdmin() {
-  const email = "admin@gmail.com";
+  const email = "admin@test.com"; // you can change this
   const password = "admin123";
 
-  try {
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      console.log("⚠️ Admin already exists");
-      console.log("Email:", existingAdmin.email);
-      process.exit();
-    }
+  const hash = await bcrypt.hash(password, 10);
 
-    const hash = await bcrypt.hash(password, 10);
-
+  // check if admin exists
+  const existing = await Admin.findOne({ email });
+  if (existing) {
+    existing.password = hash; // reset password if exists
+    await existing.save();
+    console.log("⚠️ Admin password reset");
+  } else {
     await Admin.create({ email, password: hash });
-
-    console.log("✅ Admin created successfully");
-    console.log("Email:", email);
-    console.log("Password:", password);
-    process.exit();
-  } catch (err) {
-    console.error("❌ Error creating admin:", err);
-    process.exit(1);
+    console.log("✅ Admin created");
   }
+
+  console.log("Email:", email);
+  console.log("Password:", password);
+
+  process.exit();
 }
 
 createAdmin();
+
