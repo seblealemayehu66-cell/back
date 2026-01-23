@@ -49,6 +49,15 @@ router.post("/register", async (req, res) => {
         BTC: 0,
         ETH: 0,
         USDT: 0,
+      SOL: 0,
+      BNB: 0,
+      ADA: 0,
+      XRP: 0,
+      DOT: 0,
+      DOGE: 0,
+      LTC: 0,
+      AVAX: 0,
+      SHIB: 0,
       },
     });
 
