@@ -16,7 +16,7 @@ router.get("/users", authAdmin, async (req, res) => {
 });
 
 // Add balance to user (protected)
-router.post("/users/add-balance", adminauth, async (req, res) => {
+router.post("/users/add-balance", adminAuth, async (req, res) => {
   const { userId, symbol, amount } = req.body;
   if (!userId || !symbol || !amount) return res.status(400).json({ message: "All fields are required" });
 
