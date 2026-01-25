@@ -15,6 +15,11 @@ import withdrawRoutes from "./routes/withdraw.routes.js";
 
 
 // Public routes
+import adminWithdrawRoutes from "./routes/admin.withdraw.routes.js";
+
+// only admin authenticated
+
+
 
 
 
@@ -66,6 +71,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/trade", tradeRoutes);
 
 app.use("/api/withdraw", withdrawRoutes);
+app.use("/api/admin/withdraws", adminWithdrawRoutes);
 
 
 
