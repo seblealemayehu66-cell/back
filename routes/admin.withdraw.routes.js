@@ -1,7 +1,7 @@
 import express from "express";
 import Withdraw from "../models/Withdraw.js";
-import Admin from "../models/Admin.js";
-import adminAuth from "../middleware/adminAuth.js"; // auth middleware for admin
+import User from "../models/User.js";
+import adminAuth from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.get("/", adminAuth, async (req, res) => {
   }
 });
 
-// ✅ Approve / Reject withdraw
+// ✅ Approve / Reject withdraw AND deduct balance
 router.put("/:id", adminAuth, async (req, res) => {
   try {
     const { status, txid } = req.body;
@@ -25,7 +25,22 @@ router.put("/:id", adminAuth, async (req, res) => {
     const withdraw = await Withdraw.findById(req.params.id);
     if (!withdraw) return res.status(404).json({ message: "Not found" });
 
-    withdraw.status = status; // "approved" | "rejected"
+    // Only deduct balance if status is changing to approved
+    if (status === "approved" && withdraw.status !== "approved") {
+      const user = await User.findById(withdraw.userId);
+
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      if (!user.balance[withdraw.coin] || user.balance[withdraw.coin] < withdraw.amount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      // Deduct balance
+      user.balance[withdraw.coin] -= withdraw.amount;
+      await user.save();
+    }
+
+    withdraw.status = status;
     withdraw.txid = txid || withdraw.txid;
 
     await withdraw.save();
@@ -37,3 +52,4 @@ router.put("/:id", adminAuth, async (req, res) => {
 });
 
 export default router;
+
