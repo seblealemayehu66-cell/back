@@ -13,6 +13,7 @@ import tradeRoutes from "./routes/trade.routes.js";
 
 import withdrawRoutes from "./routes/withdraw.routes.js";
   import kycRoutes from "./routes/kyc.routes.js";
+import supportRoutes from "./routes/support.routes.js";
 
 
 
@@ -78,6 +79,7 @@ app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/admin/withdraws", adminWithdrawRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/admin/kyc", adminKycRoutes); // Admin KYC routes
+app.use("/api/support", supportRoutes);
 
 
 
