@@ -1,11 +1,11 @@
 import express from "express";
 import User from "../models/User.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // Get user referral info
-router.get("/", authMiddleware, async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate("referrals", "username email uid");
     res.json({
@@ -21,7 +21,7 @@ router.get("/", authMiddleware, async (req, res) => {
 });
 
 // Apply referral code on signup
-router.post("/apply", authMiddleware, async (req, res) => {
+router.post("/apply", auth, async (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ message: "Referral code required" });
 
