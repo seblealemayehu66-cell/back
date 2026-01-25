@@ -12,7 +12,8 @@ import settingsRoutes from "./routes/settings.routes.js";
 import tradeRoutes from "./routes/trade.routes.js";
 
 import withdrawRoutes from "./routes/withdraw.routes.js";
-import kycRoutes from "./routes/kyc.routes.js
+  import kycRoutes from "./routes/kyc.routes.js";
+
 
 
 // Public routes
@@ -73,7 +74,8 @@ app.use("/api/trade", tradeRoutes);
 
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/admin/withdraws", adminWithdrawRoutes);
-app.use("/api/kyc/", kycRoutes);
+app.use("/api/kyc", kycRoutes);
+
 
 
 
