@@ -22,7 +22,6 @@ import adminWithdrawRoutes from "./routes/admin.withdraw.routes.js";
 // only admin authenticated
 
 
-import adminKycRoutes from "./routes/adminKyc.routes.js";
 
 
 
@@ -76,7 +75,6 @@ app.use("/api/trade", tradeRoutes);
 
 app.use("/api/withdraw", withdrawRoutes);
 app.use("/api/admin/withdraws", adminWithdrawRoutes);
-app.use("/api/admin/kyc", adminKycRoutes); // Admin KYC routes
 app.use("/api/support", supportRoutes);
 
 
