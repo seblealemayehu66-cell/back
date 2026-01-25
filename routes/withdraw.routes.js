@@ -1,39 +1,79 @@
 import express from "express";
 import Withdraw from "../models/Withdraw.js";
 import auth from "../middleware/auth.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
+
+// =======================
+// CREATE WITHDRAW REQUEST
+// =======================
 router.post("/", auth, async (req, res) => {
   try {
+    const { coin, network, address, amount } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user || user.balance[coin] < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+
     const withdraw = await Withdraw.create({
-      user: req.user.id,
-      ...req.body,
+      userId: user._id,
+      coin,
+      network,
+      address,
+      amount
     });
 
     res.json(withdraw);
-  } catch (e) {
-    res.status(500).json({ message: "Withdraw error" });
+  } catch (err) {
+    res.status(500).json(err.message);
   }
 });
 
-router.get("/admin", async (req, res) => {
-  const data = await Withdraw.find().populate("user");
-  res.json(data);
+
+// =======================
+// USER WITHDRAW HISTORY
+// =======================
+router.get("/my", auth, async (req, res) => {
+  const history = await Withdraw.find({
+    userId: req.user.id
+  }).sort({ createdAt: -1 });
+
+  res.json(history);
 });
 
-router.put("/:id/approve", async (req, res) => {
-  await Withdraw.findByIdAndUpdate(req.params.id, {
-    status: "approved",
-  });
-  res.json({ success: true });
+
+// =======================
+// ADMIN: GET ALL
+// =======================
+router.get("/all", async (req, res) => {
+  const history = await Withdraw.find()
+    .populate("userId", "email")
+    .sort({ createdAt: -1 });
+
+  res.json(history);
 });
 
-router.put("/:id/reject", async (req, res) => {
-  await Withdraw.findByIdAndUpdate(req.params.id, {
-    status: "rejected",
-  });
-  res.json({ success: true });
+
+// =======================
+// ADMIN APPROVE / REJECT
+// =======================
+router.put("/:id", async (req, res) => {
+  const { status, txid } = req.body;
+
+  const withdraw = await Withdraw.findById(req.params.id);
+
+  if (!withdraw) return res.sendStatus(404);
+
+  withdraw.status = status;
+  withdraw.txid = txid || "";
+
+  await withdraw.save();
+
+  res.json(withdraw);
 });
 
 export default router;
