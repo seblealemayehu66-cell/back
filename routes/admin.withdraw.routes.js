@@ -1,12 +1,12 @@
 import express from "express";
 import Withdraw from "../models/Withdraw.js";
 import Admin from "../models/Admin.js";
-import authAdmin from "../middleware/authAdmin.js"; // auth middleware for admin
+import authAdmin from "../middleware/adminAuth.js"; // auth middleware for admin
 
 const router = express.Router();
 
 // ✅ Get all withdrawals
-router.get("/", authAdmin, async (req, res) => {
+router.get("/", adminAuth, async (req, res) => {
   try {
     const withdraws = await Withdraw.find()
       .populate("userId", "email")
@@ -18,7 +18,7 @@ router.get("/", authAdmin, async (req, res) => {
 });
 
 // ✅ Approve / Reject withdraw
-router.put("/:id", authAdmin, async (req, res) => {
+router.put("/:id", adminAuth, async (req, res) => {
   try {
     const { status, txid } = req.body;
 
