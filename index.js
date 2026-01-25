@@ -8,6 +8,7 @@ import adminSetupRoutes from "./routes/admin.setup.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
 import adminWalletRoutes from "./routes/admin.wallet.routes.js";
 import publicAdminWalletRoutes from "./routes/public.adminwallet.routes.js";
+import rewardsRoutes from "./routes/rewards.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import tradeRoutes from "./routes/trade.routes.js";
 
@@ -84,6 +85,7 @@ app.use("/api/admin/withdraws", adminWithdrawRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/admin/support", adminSupportRoutes);
 app.use("/api/kyc", kycRoutes);
+app.use("/api/rewards", rewardsRoutes);
 
 
 
