@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   withdrawPassword: String,
   kycStatus: { type: String, default: "pending" },
 
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
  referralCode: { type: String, unique: true },
   referredBy: { type: String, default: null }, // store the referrer code
   referrals: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // users this person referred
