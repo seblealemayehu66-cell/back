@@ -1,57 +1,76 @@
+// routes/support.routes.js
 import express from "express";
 import SupportTicket from "../models/SupportTicket.js";
-import verifyToken from "../middleware/verifyToken.js"; // middleware to authenticate user
+import verifyToken from "../middleware/verifyToken.js";
 
 const router = express.Router();
 
-// Create new ticket
-router.post("/", verifyToken, async (req, res) => {
+// Create new support ticket
+router.post("/create", verifyToken, async (req, res) => {
   try {
     const { subject, message } = req.body;
+    if (!subject || !message)
+      return res.status(400).json({ message: "Subject and message required" });
+
     const ticket = new SupportTicket({
-      user: req.user._id,
+      userId: req.user._id,
       subject,
-      messages: [{ sender: "user", message }],
+      message,
     });
+
     await ticket.save();
-    res.status(201).json(ticket);
+    res.status(201).json({ message: "Support ticket created", ticket });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to create ticket" });
   }
 });
 
-// Get all tickets for user
-router.get("/", verifyToken, async (req, res) => {
+// Get all tickets for logged-in user
+router.get("/my-tickets", verifyToken, async (req, res) => {
   try {
-    const tickets = await SupportTicket.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const tickets = await SupportTicket.find({ userId: req.user._id }).sort({
+      createdAt: -1,
+    });
     res.json(tickets);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch tickets" });
   }
 });
 
-// Get single ticket by ID
+// Get single ticket details
 router.get("/:id", verifyToken, async (req, res) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    const ticket = await SupportTicket.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
     res.json(ticket);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch ticket" });
   }
 });
 
-// Add message to ticket
-router.post("/:id/message", verifyToken, async (req, res) => {
+// Admin reply to ticket (optional)
+router.post("/reply/:id", verifyToken, async (req, res) => {
   try {
+    // For admin only — you can add check for admin role here
+    const { reply } = req.body;
     const ticket = await SupportTicket.findById(req.params.id);
-    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
-    ticket.messages.push({ sender: "user", message: req.body.message });
+    ticket.reply = reply;
+    ticket.status = "resolved";
     await ticket.save();
-    res.json(ticket);
+
+    res.json({ message: "Reply sent", ticket });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to reply ticket" });
   }
 });
 
