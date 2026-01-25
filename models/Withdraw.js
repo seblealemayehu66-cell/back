@@ -2,20 +2,30 @@ import mongoose from "mongoose";
 
 const withdrawSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
 
     coin: String,
     network: String,
     address: String,
+
     amount: Number,
 
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
+      default: "pending", // pending | approved | rejected
     },
+
+    txid: {
+      type: String,
+      default: ""
+    }
   },
   { timestamps: true }
 );
 
 export default mongoose.model("Withdraw", withdrawSchema);
+
