@@ -7,9 +7,9 @@ import Wallet from "../models/Wallet.js";
 import Notification from "../models/Notification.js";
 import getNextUid from "../middleware/getNextUid.js";
 import auth from "../middleware/auth.js";
+import crypto from "crypto"; // for referral code generation
 
 const router = express.Router();
-
 
 // ======================
 // REGISTER
@@ -39,25 +39,30 @@ router.post("/register", async (req, res) => {
     // ✅ generate UID
     const uid = await getNextUid();
 
+    // ✅ generate unique referral code (8 chars)
+    const referralCode = crypto.randomBytes(4).toString("hex").toUpperCase();
+
     // ✅ create user
     const user = await User.create({
       uid,
       username,
       email,
       password: hashed,
+      referralCode, // NEW
+      referredBy: null, // optional, will be set if someone used a code
       balance: {
         BTC: 0,
         ETH: 0,
         USDT: 0,
-      SOL: 0,
-      BNB: 0,
-      ADA: 0,
-      XRP: 0,
-      DOT: 0,
-      DOGE: 0,
-      LTC: 0,
-      AVAX: 0,
-      SHIB: 0,
+        SOL: 0,
+        BNB: 0,
+        ADA: 0,
+        XRP: 0,
+        DOT: 0,
+        DOGE: 0,
+        LTC: 0,
+        AVAX: 0,
+        SHIB: 0,
       },
     });
 
@@ -70,7 +75,6 @@ router.post("/register", async (req, res) => {
       { coin: "BNB", symbol: "BNB" },
     ];
 
-    // ✅ create wallets safely
     await Promise.all(
       coins.map((c) =>
         Wallet.create({
@@ -92,6 +96,7 @@ router.post("/register", async (req, res) => {
       success: true,
       message: "Registration successful",
       uid: user.uid,
+      referralCode: user.referralCode, // send referral code to frontend
     });
 
   } catch (err) {
@@ -102,7 +107,6 @@ router.post("/register", async (req, res) => {
     });
   }
 });
-
 
 // ======================
 // LOGIN
@@ -141,6 +145,7 @@ router.post("/login", async (req, res) => {
         username: user.username,
         email: user.email,
         balance: user.balance,
+        referralCode: user.referralCode, // NEW: send referral code
       },
     });
 
@@ -153,19 +158,19 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
 // ======================
 // GET CURRENT USER
 // ======================
 router.get("/me", auth, async (req, res) => {
   try {
-    const { uid, username, email, balance } = req.user;
+    const { uid, username, email, balance, referralCode } = req.user;
 
     return res.json({
       uid,
       username,
       email,
       balance,
+      referralCode, // NEW
     });
 
   } catch (err) {
@@ -178,3 +183,4 @@ router.get("/me", auth, async (req, res) => {
 });
 
 export default router;
+
