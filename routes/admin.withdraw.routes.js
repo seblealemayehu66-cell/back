@@ -1,7 +1,7 @@
 import express from "express";
 import Withdraw from "../models/Withdraw.js";
 import Admin from "../models/Admin.js";
-import authAdmin from "../middleware/adminAuth.js"; // auth middleware for admin
+import adminAuth from "../middleware/adminAuth.js"; // auth middleware for admin
 
 const router = express.Router();
 
