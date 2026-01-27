@@ -106,7 +106,7 @@ app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 // ===== DATABASE CONNECTION =====
 
 
-const DB = process.env.MONGO_PUBLIC_URL; // Railway MongoDB
+const DB = process.env.NEW_MONGO_URL; // Railway MongoDB
 
 if (!DB) {
   console.error("❌ MONGO_URL is not defined in Railway variables");
