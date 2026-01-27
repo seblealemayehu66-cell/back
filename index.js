@@ -99,15 +99,34 @@ app.get("/", (req, res) => res.send("Backend is running 🚀"));
 app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 
 // ===== DATABASE CONNECTION =====
-const DB = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/crypto";
+
+
+
+
+// ===== DATABASE CONNECTION =====
+import mongoose from "mongoose";
+
+const DB = process.env.MONGO_URL; // Railway MongoDB
+
+if (!DB) {
+  console.error("❌ MONGO_URL is not defined in Railway variables");
+  process.exit(1);
+}
 
 mongoose
-  .connect(DB, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("MongoDB Connected ✅"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .connect(DB)
+  .then(() => console.log("MongoDB Connected ✅ (Railway)"))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 // ===== START SERVER =====
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT} 🚀`));
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT} 🚀`)
+);
+
 
 
