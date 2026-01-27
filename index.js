@@ -104,7 +104,7 @@ app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 
 
 // ===== DATABASE CONNECTION =====
-import mongoose from "mongoose";
+
 
 const DB = process.env.MONGO_URL; // Railway MongoDB
 
