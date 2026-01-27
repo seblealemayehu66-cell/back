@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Admin from "./models/Admin.js";
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.NEW_MONGO_URL)
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.error("MongoDB connection error:", err));
 
