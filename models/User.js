@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema({
       LTC: { type: Number, default: 0 },
       AVAX: { type: Number, default: 0 },
       SHIB: { type: Number, default: 0 },
+     XAU: {type: Number, default: 0},
+     XAG: {type: Number, default: 0}
     
   },
 
