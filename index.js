@@ -10,7 +10,6 @@ import adminDepositRoutes from "./routes/adminDeposit.routes.js";
 
 
 
-import swapRoutes from "./routes/swap.routes.js";
 
 
 
@@ -127,7 +126,7 @@ app.use("/api/notifications", notificationsRoutes);
 
 
 
-app.use("/api", swapRoutes);
+
 
 
 
