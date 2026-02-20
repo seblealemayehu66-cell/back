@@ -37,7 +37,7 @@ router.get("/pending", isAdmin, async (req, res) => {
   try {
     const kycs = await Kyc.find({ status: "pending" }).populate(
       "userId",
-      "username email"
+      "firstName email"
     );
     res.json(kycs);
   } catch (err) {
