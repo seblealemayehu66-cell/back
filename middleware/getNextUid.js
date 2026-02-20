@@ -1,4 +1,5 @@
-const Counter = require("../models/Counter");
+
+import Counter from "../models/Counter.js";
 
 async function getNextUid() {
   const counter = await Counter.findByIdAndUpdate(
@@ -13,4 +14,6 @@ async function getNextUid() {
   return counter.seq;
 }
 
-module.exports = getNextUid;
+// Export as default so you can import like:
+// import getNextUid from "../middleware/getNextUid.js";
+export default getNextUid;
