@@ -18,7 +18,7 @@ router.get("/tickets", verifyAdmin, async (req, res) => {
 // Get a single ticket
 router.get("/tickets/:id", verifyAdmin, async (req, res) => {
   try {
-    const ticket = await SupportTicket.findById(req.params.id).populate("user", "username email");
+    const ticket = await SupportTicket.findById(req.params.id).populate("user", "firstname lastname email");
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
     res.json(ticket);
   } catch (err) {
