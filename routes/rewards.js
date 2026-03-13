@@ -9,7 +9,7 @@ const router = express.Router();
 // Get user referral info
 router.get("/", auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate("referrals", "username email uid");
+    const user = await User.findById(req.user.id).populate("referrals", "firstname lastname email");
     res.json({
       referralCode: user.referralCode,
       referredBy: user.referredBy,
