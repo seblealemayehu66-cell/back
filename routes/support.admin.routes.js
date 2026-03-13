@@ -10,7 +10,7 @@ const router = express.Router();
  */
 router.get("/tickets", verifyAdmin, async (req, res) => {
   const tickets = await SupportTicket.find()
-    .populate("user", "username email uid")
+    .populate("user", "firstname lastname email")
     .sort({ createdAt: -1 });
 
   res.json(tickets);
