@@ -61,34 +61,40 @@ router.post("/", authMiddleware, async (req, res) => {
     /* ================= AUTO CLOSE ================= */
 
     setTimeout(async () => {
-      try {
-        const t = await Trade.findById(trade._id);
-        if (!t || t.status === "closed") return;
+  try {
+    const t = await Trade.findById(trade._id);
+    if (!t || t.status === "closed") return;
 
-        const u = await User.findById(t.userId);
-        if (!u) return;
+    const u = await User.findById(t.userId);
+    if (!u) return;
 
-        const win = getResult(); // 🔥 REAL RESULT
+    // ✅ GET FRESH SETTINGS HERE
+    const freshSettings = await Settings.findOne();
 
-        const profitLoss = win
-          ? (t.amount * t.percentage) / 100
-          : -(t.amount * t.percentage) / 100;
+    let profitLoss = 0;
 
-        t.profitLoss = profitLoss;
-        t.result = win ? "win" : "loss";
-        t.status = "closed";
-        t.closedAt = new Date();
+    if (freshSettings?.tradingOpen) {
+      // ✅ ALWAYS WIN
+      profitLoss = (t.amount * t.percentage) / 100;
+    } else {
+      // ❌ ALWAYS LOSE
+      profitLoss = -(t.amount * t.percentage) / 100;
+    }
 
-        await t.save();
+    t.profitLoss = profitLoss;
+    t.status = "closed";
+    t.closedAt = new Date();
 
-        // refund + profit/loss
-        u.balance.USDT += t.amount + profitLoss;
-        await u.save();
+    await t.save();
 
-      } catch (err) {
-        console.error("Auto close error:", err);
-      }
-    }, deliveryTime * 1000);
+    // update balance
+    u.balance.USDT += t.amount + profitLoss;
+    await u.save();
+
+  } catch (err) {
+    console.error("Auto close error:", err);
+  }
+}, deliveryTime * 1000);
 
     /* ================= RESPONSE FIX ================= */
 
