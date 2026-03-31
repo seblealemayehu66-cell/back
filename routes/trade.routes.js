@@ -12,7 +12,7 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     let { pair, direction, amount, deliveryTime } = req.body;
 
-    // 🔥 FORCE NUMBER (THIS IS THE FIX)
+    // FORCE NUMBER
     deliveryTime = Number(deliveryTime);
     amount = Number(amount);
 
@@ -21,19 +21,19 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // ✅ ALWAYS TRADE WITH USDT
+    // CHECK BALANCE
     if (!user.balance.USDT || amount > user.balance.USDT) {
       return res.status(400).json({ message: "Insufficient USDT balance" });
     }
 
-    // deduct USDT immediately
+    // DEDUCT BALANCE IMMEDIATELY
     user.balance.USDT -= amount;
     await user.save();
 
     let settings = await Settings.findOne();
     if (!settings) settings = await Settings.create({ tradingOpen: true });
 
-    // ✅ PROFIT BASED ON DURATION
+    // PROFIT PERCENTAGE BASED ON TIME
     let percentage;
 
     switch (deliveryTime) {
@@ -53,10 +53,9 @@ router.post("/", authMiddleware, async (req, res) => {
         percentage = 15;
     }
 
-    const entryPrice = Number(
-      (60000 + Math.random() * 2000).toFixed(2)
-    );
+    const entryPrice = Number((60000 + Math.random() * 2000).toFixed(2));
 
+    // CREATE TRADE
     const trade = await Trade.create({
       userId: user._id,
       coin: "USDT",
@@ -65,11 +64,13 @@ router.post("/", authMiddleware, async (req, res) => {
       amount,
       entryPrice,
       deliveryTime,
-      percentage, // ✅ correct value now
-      status: "pending"
+      percentage,
+      status: "pending",
+      result: "pending",
+      profitLoss: 0
     });
 
-    /* ================= AUTO CLOSE ================= */
+    /* ================= AUTO CLOSE TRADE ================= */
 
     setTimeout(async () => {
       try {
@@ -79,29 +80,39 @@ router.post("/", authMiddleware, async (req, res) => {
         const u = await User.findById(t.userId);
         if (!u) return;
 
-        let profitLoss = 0;
+        // 🔥 REAL MARKET SIMULATION
+        const marketMoveUp = Math.random() > 0.5;
 
-        // 🔥 USE t.percentage (VERY IMPORTANT)
-        if (!settings.tradingOpen) {
-          profitLoss = -(t.amount * t.percentage) / 100;
-        } else {
-          profitLoss = (t.amount * t.percentage) / 100;
-        }
+        let win = false;
 
+        if (t.direction === "up" && marketMoveUp) win = true;
+        if (t.direction === "down" && !marketMoveUp) win = true;
+
+        let profitLoss = win
+          ? (t.amount * t.percentage) / 100
+          : -(t.amount * t.percentage) / 100;
+
+        // UPDATE TRADE
         t.profitLoss = profitLoss;
         t.status = "closed";
+        t.result = win ? "win" : "loss";
         t.closedAt = new Date();
 
         await t.save();
 
-        // return USDT balance
+        // UPDATE USER BALANCE
         u.balance.USDT += t.amount + profitLoss;
         await u.save();
 
+        console.log(
+          `Trade closed: ${t._id} | ${t.result} | P/L: ${profitLoss}`
+        );
       } catch (err) {
         console.error("Auto close error:", err);
       }
     }, deliveryTime * 1000);
+
+    /* ================= RESPONSE ================= */
 
     res.json({
       message: "Trade placed successfully",
@@ -115,7 +126,7 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= USER TRADES ================= */
+/* ================= GET USER TRADES ================= */
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
