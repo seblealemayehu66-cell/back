@@ -6,47 +6,56 @@ import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
-/* ================= HELPER: MARKET RESULT ================= */
-const getMarketResult = (direction) => {
-  const moveUp = Math.random() > 0.5;
-
-  let win = false;
-  if (direction === "up" && moveUp) win = true;
-  if (direction === "down" && !moveUp) win = true;
-
-  return win;
-};
-
 /* ================= PLACE TRADE ================= */
+
 router.post("/", authMiddleware, async (req, res) => {
   try {
     let { pair, direction, amount, deliveryTime } = req.body;
 
-    amount = Number(amount);
+    // 🔥 FORCE NUMBER (THIS IS THE FIX)
     deliveryTime = Number(deliveryTime);
+    amount = Number(amount);
 
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (!user.balance.USDT || user.balance.USDT < amount) {
-      return res.status(400).json({ message: "Insufficient balance" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Deduct balance immediately
+    // ✅ ALWAYS TRADE WITH USDT
+    if (!user.balance.USDT || amount > user.balance.USDT) {
+      return res.status(400).json({ message: "Insufficient USDT balance" });
+    }
+
+    // deduct USDT immediately
     user.balance.USDT -= amount;
     await user.save();
 
     let settings = await Settings.findOne();
     if (!settings) settings = await Settings.create({ tradingOpen: true });
 
-    // Profit %
-    let percentage = 15;
-    if (deliveryTime === 30) percentage = 12;
-    if (deliveryTime === 60) percentage = 15;
-    if (deliveryTime === 120) percentage = 20;
-    if (deliveryTime === 300) percentage = 25;
+    // ✅ PROFIT BASED ON DURATION
+    let percentage;
 
-    const entryPrice = Number((60000 + Math.random() * 2000).toFixed(2));
+    switch (deliveryTime) {
+      case 30:
+        percentage = 12;
+        break;
+      case 60:
+        percentage = 15;
+        break;
+      case 120:
+        percentage = 20;
+        break;
+      case 300:
+        percentage = 25;
+        break;
+      default:
+        percentage = 15;
+    }
+
+    const entryPrice = Number(
+      (60000 + Math.random() * 2000).toFixed(2)
+    );
 
     const trade = await Trade.create({
       userId: user._id,
@@ -56,13 +65,12 @@ router.post("/", authMiddleware, async (req, res) => {
       amount,
       entryPrice,
       deliveryTime,
-      percentage,
-      status: "pending",
-      result: "pending",
-      profitLoss: 0,
+      percentage, // ✅ correct value now
+      status: "pending"
     });
 
-    /* ================= AUTO CLOSE ENGINE ================= */
+    /* ================= AUTO CLOSE ================= */
+
     setTimeout(async () => {
       try {
         const t = await Trade.findById(trade._id);
@@ -71,20 +79,22 @@ router.post("/", authMiddleware, async (req, res) => {
         const u = await User.findById(t.userId);
         if (!u) return;
 
-        const win = getMarketResult(t.direction);
+        let profitLoss = 0;
 
-        const profitLoss = win
-          ? (t.amount * t.percentage) / 100
-          : -(t.amount * t.percentage) / 100;
+        // 🔥 USE t.percentage (VERY IMPORTANT)
+        if (!settings.tradingOpen) {
+          profitLoss = -(t.amount * t.percentage) / 100;
+        } else {
+          profitLoss = (t.amount * t.percentage) / 100;
+        }
 
         t.profitLoss = profitLoss;
-        t.result = win ? "win" : "loss";
         t.status = "closed";
         t.closedAt = new Date();
 
         await t.save();
 
-        // return balance
+        // return USDT balance
         u.balance.USDT += t.amount + profitLoss;
         await u.save();
 
@@ -93,16 +103,10 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }, deliveryTime * 1000);
 
-    /* ================= IMPORTANT FIX ================= */
-    // return FULL trade immediately (with initial state)
     res.json({
       message: "Trade placed successfully",
-      trade: {
-        ...trade.toObject(),
-        profitLoss: 0,
-        result: "pending",
-      },
-      balance: user.balance,
+      trade,
+      balance: user.balance
     });
 
   } catch (err) {
@@ -111,31 +115,17 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= GET USER TRADES ================= */
+/* ================= USER TRADES ================= */
+
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const trades = await Trade.find({ userId: req.user._id }).sort({
-      createdAt: -1,
-    });
+    const trades = await Trade.find({
+      userId: req.user._id
+    }).sort({ createdAt: -1 });
 
     res.json(trades);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch trades" });
-  }
-});
-
-/* ================= GET SINGLE TRADE (IMPORTANT FIX FOR FRONTEND) */
-router.get("/:id", authMiddleware, async (req, res) => {
-  try {
-    const trade = await Trade.findById(req.params.id);
-
-    if (!trade) {
-      return res.status(404).json({ message: "Trade not found" });
-    }
-
-    res.json(trade);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching trade" });
   }
 });
 
