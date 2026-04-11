@@ -5,6 +5,9 @@ import authMiddleware from "../middleware/auth.js";
 
 const router = express.Router();
 
+/* ================= SUPPORTED ASSETS ================= */
+const SUPPORTED_ASSETS = ["BTC", "ETH", "SOL", "BNB", "XRP", "USDT"];
+
 /* ================= PRICE CACHE ================= */
 let cachedPrices = null;
 let lastFetch = 0;
@@ -12,7 +15,6 @@ let lastFetch = 0;
 async function getPrices() {
   const now = Date.now();
 
-  // cache for 30 seconds
   if (cachedPrices && now - lastFetch < 30000) {
     return cachedPrices;
   }
@@ -25,7 +27,7 @@ async function getPrices() {
       { pair: "ETHUSDT", key: "ETH" },
       { pair: "SOLUSDT", key: "SOL" },
       { pair: "BNBUSDT", key: "BNB" },
-      { pair: "XRPUSDT", key: "XRP" }
+      { pair: "XRPUSDT", key: "XRP" },
     ];
 
     const requests = symbols.map((s) =>
@@ -34,19 +36,14 @@ async function getPrices() {
 
     const responses = await Promise.all(requests);
 
-    responses.forEach((res, index) => {
-      const price = parseFloat(res.data.price);
-      const key = symbols[index].key;
-      prices[key] = price;
+    responses.forEach((res, i) => {
+      prices[symbols[i].key] = parseFloat(res.data.price);
     });
 
-    // USDT = 1 USD
     prices.USDT = 1;
 
     cachedPrices = prices;
     lastFetch = now;
-
-    console.log("BINANCE PRICES:", prices);
 
     return prices;
   } catch (err) {
@@ -56,54 +53,72 @@ async function getPrices() {
 }
 
 /* ================= SWAP ================= */
-router.post("/swap", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   try {
     const { fromAsset, toAsset, amount } = req.body;
 
-    // validation
-    if (!fromAsset || !toAsset || !amount)
+    /* ===== VALIDATION ===== */
+    if (!fromAsset || !toAsset || !amount) {
       return res.status(400).json({ message: "Missing data" });
+    }
 
-    if (fromAsset === toAsset)
+    if (fromAsset === toAsset) {
       return res.status(400).json({ message: "Cannot swap same asset" });
+    }
 
-    if (Number(amount) <= 0)
+    if (Number(amount) <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    if (
+      !SUPPORTED_ASSETS.includes(fromAsset) ||
+      !SUPPORTED_ASSETS.includes(toAsset)
+    ) {
+      return res.status(400).json({ message: "Unsupported asset" });
+    }
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user.balance[fromAsset] || user.balance[fromAsset] < amount)
+    /* ===== SAFE BALANCE CHECK ===== */
+    if (
+      !user.balance[fromAsset] ||
+      Number(user.balance[fromAsset]) < Number(amount)
+    ) {
       return res.status(400).json({ message: "Insufficient balance" });
+    }
 
     const prices = await getPrices();
 
-    if (!prices[fromAsset] || !prices[toAsset])
-      return res.status(400).json({ message: "Invalid asset" });
+    if (
+      prices[fromAsset] === undefined ||
+      prices[toAsset] === undefined
+    ) {
+      return res.status(400).json({ message: "Price not available" });
+    }
 
-    /* ===== UNIVERSAL CONVERSION (USD BASED) ===== */
-    const usdValue = amount * prices[fromAsset];
-    const receiveAmount = usdValue / prices[toAsset];
+    /* ===== CONVERSION ===== */
+    const usdValue = Number(amount) * Number(prices[fromAsset]);
+    const receiveAmount = usdValue / Number(prices[toAsset]);
 
-    // update balances
-    user.balance[fromAsset] -= amount;
+    /* ===== UPDATE BALANCES ===== */
+    user.balance[fromAsset] =
+      Number(user.balance[fromAsset]) - Number(amount);
+
     user.balance[toAsset] =
-      (user.balance[toAsset] || 0) + receiveAmount;
+      (Number(user.balance[toAsset]) || 0) + receiveAmount;
 
     await user.save();
 
     res.json({
       success: true,
-      from: fromAsset,
-      to: toAsset,
-      amount,
-      received: receiveAmount,
+      received: parseFloat(receiveAmount.toFixed(6)),
       rate: prices[fromAsset] / prices[toAsset],
       balance: user.balance,
     });
 
   } catch (err) {
-    console.error("Swap Error:", err.message);
+    console.error("FULL ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 });
