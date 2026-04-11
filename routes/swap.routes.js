@@ -12,7 +12,7 @@ let lastFetch = 0;
 async function getPrices() {
   const now = Date.now();
 
-  // Cache prices for 30 seconds
+  // cache for 30 seconds
   if (cachedPrices && now - lastFetch < 30000) {
     return cachedPrices;
   }
@@ -20,47 +20,38 @@ async function getPrices() {
   try {
     const prices = {};
 
-    /* ===== CRYPTO (CoinGecko) ===== */
-    const cryptoRes = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price",
-      {
-        params: {
-          ids: "bitcoin,ethereum,tether,solana",
-          vs_currencies: "usd",
-        },
-      }
+    const symbols = [
+      { pair: "BTCUSDT", key: "BTC" },
+      { pair: "ETHUSDT", key: "ETH" },
+      { pair: "SOLUSDT", key: "SOL" },
+      { pair: "BNBUSDT", key: "BNB" },
+      { pair: "XRPUSDT", key: "XRP" }
+    ];
+
+    const requests = symbols.map((s) =>
+      axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${s.pair}`)
     );
 
-    prices.BTC = cryptoRes.data.bitcoin.usd;
-    prices.ETH = cryptoRes.data.ethereum.usd;
-    prices.SOL = cryptoRes.data.solana.usd;
+    const responses = await Promise.all(requests);
+
+    responses.forEach((res, index) => {
+      const price = parseFloat(res.data.price);
+      const key = symbols[index].key;
+      prices[key] = price;
+    });
+
+    // USDT = 1 USD
     prices.USDT = 1;
-
-    /* ===== METALS (GoldAPI) ===== */
-    const goldRes = await axios.get("https://www.goldapi.io/api/XAU/USD", {
-      headers: {
-        "x-access-token": process.env.GOLD_API_KEY,
-      },
-    });
-
-    const silverRes = await axios.get("https://www.goldapi.io/api/XAG/USD", {
-      headers: {
-        "x-access-token": process.env.GOLD_API_KEY,
-      },
-    });
-
-    prices.XAU = goldRes.data.price;
-    prices.XAG = silverRes.data.price;
 
     cachedPrices = prices;
     lastFetch = now;
 
-    console.log("LIVE PRICES:", prices);
+    console.log("BINANCE PRICES:", prices);
 
     return prices;
   } catch (err) {
-    console.error("Price Fetch Error:", err.response?.data || err.message);
-    throw new Error("Failed to fetch live prices");
+    console.error("Price Fetch Error:", err.message);
+    throw new Error("Failed to fetch prices");
   }
 }
 
@@ -69,6 +60,7 @@ router.post("/swap", authMiddleware, async (req, res) => {
   try {
     const { fromAsset, toAsset, amount } = req.body;
 
+    // validation
     if (!fromAsset || !toAsset || !amount)
       return res.status(400).json({ message: "Missing data" });
 
@@ -89,10 +81,11 @@ router.post("/swap", authMiddleware, async (req, res) => {
     if (!prices[fromAsset] || !prices[toAsset])
       return res.status(400).json({ message: "Invalid asset" });
 
-    /* ===== UNIVERSAL CONVERSION ===== */
+    /* ===== UNIVERSAL CONVERSION (USD BASED) ===== */
     const usdValue = amount * prices[fromAsset];
     const receiveAmount = usdValue / prices[toAsset];
 
+    // update balances
     user.balance[fromAsset] -= amount;
     user.balance[toAsset] =
       (user.balance[toAsset] || 0) + receiveAmount;
@@ -101,10 +94,14 @@ router.post("/swap", authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
+      from: fromAsset,
+      to: toAsset,
+      amount,
       received: receiveAmount,
       rate: prices[fromAsset] / prices[toAsset],
       balance: user.balance,
     });
+
   } catch (err) {
     console.error("Swap Error:", err.message);
     res.status(500).json({ message: err.message });
