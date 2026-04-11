@@ -6,58 +6,94 @@ import authMiddleware from "../middleware/auth.js";
 const router = express.Router();
 
 /* ================= SUPPORTED ASSETS ================= */
-const SUPPORTED_ASSETS = ["BTC", "ETH", "SOL", "BNB", "XRP", "USDT"];
+const ASSETS = ["BTC", "ETH", "SOL", "BNB", "XRP", "USDT"];
 
-/* ================= PRICE CACHE ================= */
+/* ================= CACHE ================= */
 let cachedPrices = null;
 let lastFetch = 0;
 
+/* ================= BINANCE ================= */
+async function fetchFromBinance() {
+  const symbols = [
+    { pair: "BTCUSDT", key: "BTC" },
+    { pair: "ETHUSDT", key: "ETH" },
+    { pair: "SOLUSDT", key: "SOL" },
+    { pair: "BNBUSDT", key: "BNB" },
+    { pair: "XRPUSDT", key: "XRP" },
+  ];
+
+  const requests = symbols.map((s) =>
+    axios.get(`https://api1.binance.com/api/v3/ticker/price?symbol=${s.pair}`)
+  );
+
+  const responses = await Promise.all(requests);
+
+  const prices = {};
+  responses.forEach((res, i) => {
+    prices[symbols[i].key] = parseFloat(res.data.price);
+  });
+
+  prices.USDT = 1;
+  return prices;
+}
+
+/* ================= COINGECKO ================= */
+async function fetchFromCoinGecko() {
+  const res = await axios.get(
+    "https://api.coingecko.com/api/v3/simple/price",
+    {
+      params: {
+        ids: "bitcoin,ethereum,solana,binancecoin,ripple",
+        vs_currencies: "usd",
+      },
+    }
+  );
+
+  return {
+    BTC: res.data.bitcoin.usd,
+    ETH: res.data.ethereum.usd,
+    SOL: res.data.solana.usd,
+    BNB: res.data.binancecoin.usd,
+    XRP: res.data.ripple.usd,
+    USDT: 1,
+  };
+}
+
+/* ================= HYBRID PRICE ENGINE ================= */
 async function getPrices() {
   const now = Date.now();
 
+  // cache 30s
   if (cachedPrices && now - lastFetch < 30000) {
     return cachedPrices;
   }
 
   try {
-    const prices = {};
+    let prices;
 
-    const symbols = [
-      { pair: "BTCUSDT", key: "BTC" },
-      { pair: "ETHUSDT", key: "ETH" },
-      { pair: "SOLUSDT", key: "SOL" },
-      { pair: "BNBUSDT", key: "BNB" },
-      { pair: "XRPUSDT", key: "XRP" },
-    ];
-
-    const requests = symbols.map((s) =>
-      axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${s.pair}`)
-    );
-
-    const responses = await Promise.all(requests);
-
-    responses.forEach((res, i) => {
-      prices[symbols[i].key] = parseFloat(res.data.price);
-    });
-
-    prices.USDT = 1;
+    // TRY BINANCE FIRST
+    try {
+      prices = await fetchFromBinance();
+    } catch (e1) {
+      console.log("Binance failed → switching to CoinGecko");
+      prices = await fetchFromCoinGecko();
+    }
 
     cachedPrices = prices;
     lastFetch = now;
 
     return prices;
   } catch (err) {
-    console.error("Price Fetch Error:", err.message);
-    throw new Error("Failed to fetch prices");
+    console.log("ALL APIs FAILED → using cache");
+    return cachedPrices || {};
   }
 }
 
-/* ================= SWAP ================= */
+/* ================= SWAP ROUTE ================= */
 router.post("/", authMiddleware, async (req, res) => {
   try {
     const { fromAsset, toAsset, amount } = req.body;
 
-    /* ===== VALIDATION ===== */
     if (!fromAsset || !toAsset || !amount) {
       return res.status(400).json({ message: "Missing data" });
     }
@@ -66,59 +102,44 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Cannot swap same asset" });
     }
 
-    if (Number(amount) <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
-    if (
-      !SUPPORTED_ASSETS.includes(fromAsset) ||
-      !SUPPORTED_ASSETS.includes(toAsset)
-    ) {
+    if (!ASSETS.includes(fromAsset) || !ASSETS.includes(toAsset)) {
       return res.status(400).json({ message: "Unsupported asset" });
     }
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    /* ===== SAFE BALANCE CHECK ===== */
     if (
       !user.balance[fromAsset] ||
-      Number(user.balance[fromAsset]) < Number(amount)
+      user.balance[fromAsset] < amount
     ) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
     const prices = await getPrices();
 
-    if (
-      prices[fromAsset] === undefined ||
-      prices[toAsset] === undefined
-    ) {
+    if (!prices[fromAsset] || !prices[toAsset]) {
       return res.status(400).json({ message: "Price not available" });
     }
 
-    /* ===== CONVERSION ===== */
-    const usdValue = Number(amount) * Number(prices[fromAsset]);
-    const receiveAmount = usdValue / Number(prices[toAsset]);
+    const usdValue = Number(amount) * prices[fromAsset];
+    const receiveAmount = usdValue / prices[toAsset];
 
-    /* ===== UPDATE BALANCES ===== */
-    user.balance[fromAsset] =
-      Number(user.balance[fromAsset]) - Number(amount);
-
+    user.balance[fromAsset] -= Number(amount);
     user.balance[toAsset] =
-      (Number(user.balance[toAsset]) || 0) + receiveAmount;
+      (user.balance[toAsset] || 0) + receiveAmount;
 
     await user.save();
 
     res.json({
       success: true,
-      received: parseFloat(receiveAmount.toFixed(6)),
+      received: Number(receiveAmount.toFixed(6)),
       rate: prices[fromAsset] / prices[toAsset],
       balance: user.balance,
     });
 
   } catch (err) {
-    console.error("FULL ERROR:", err);
+    console.error("SWAP ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 });
