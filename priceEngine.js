@@ -21,22 +21,43 @@ const streams = Object.keys(symbolMap)
   .map((s) => `${s.toLowerCase()}@trade`)
   .join("/");
 
-const ws = new WebSocket(
-  `wss://stream.binance.com:9443/stream?streams=${streams}`
-);
+function connect() {
+  const ws = new WebSocket(
+    `wss://stream.binance.com:9443/stream?streams=${streams}`
+  );
 
-ws.on("message", (data) => {
-  const msg = JSON.parse(data);
-  const trade = msg.data;
+  ws.on("open", () => {
+    console.log("WebSocket connected ✅");
+  });
 
-  const symbol = trade.s;
-  const price = parseFloat(trade.p);
+  ws.on("message", (data) => {
+    try {
+      const msg = JSON.parse(data);
+      const trade = msg.data;
 
-  const key = symbolMap[symbol];
-  if (key) {
-    prices[key] = price;
-  }
-});
+      const symbol = trade.s;
+      const price = parseFloat(trade.p);
+
+      const key = symbolMap[symbol];
+      if (key) {
+        prices[key] = price;
+      }
+    } catch (err) {
+      console.error("WS parse error:", err.message);
+    }
+  });
+
+  ws.on("error", (err) => {
+    console.error("WebSocket error:", err.message);
+  });
+
+  ws.on("close", () => {
+    console.log("WebSocket closed, reconnecting in 5s...");
+    setTimeout(connect, 5000);
+  });
+}
+
+connect();
 
 export function getPrices() {
   return prices;
