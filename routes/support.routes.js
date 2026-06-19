@@ -88,7 +88,7 @@ router.post(
 );
 
 /* ================= ADMIN - GET ALL TICKETS ================= */
-router.get("/admin/all", verifyToken, async (req, res) => {
+router.get("/admin/all", adminAuth, async (req, res) => {
   try {
     const tickets = await SupportTicket.find()
       .populate("user", "name email")
