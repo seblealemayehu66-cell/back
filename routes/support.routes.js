@@ -9,7 +9,7 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 /* ================= OPEN OR GET TICKET ================= */
-router.post("/open/:department", adminAuth, async (req, res) => {
+router.post("/open/:department", verifyToken, async (req, res) => {
   try {
     const { department } = req.params;
 
@@ -42,7 +42,7 @@ router.post("/open/:department", adminAuth, async (req, res) => {
 /* ================= USER SEND MESSAGE ================= */
 router.post(
   "/:id/message",
-  adminAuth,
+  verifyToken,
   upload.single("image"),
   async (req, res) => {
     try {
@@ -88,7 +88,7 @@ router.post(
 );
 
 /* ================= ADMIN - GET ALL TICKETS ================= */
-router.get("/admin/all", adminAuth, async (req, res) => {
+router.get("/admin/all", verifyToken, async (req, res) => {
   try {
     const tickets = await SupportTicket.find()
       .populate("user", "name email")
@@ -133,7 +133,7 @@ router.post("/admin/:ticketId/reply", adminAuth, async (req, res) => {
 /* =========================================================
    ✏️ EDIT MESSAGE (USER + ADMIN)
    ========================================================= */
-router.put("/:ticketId/message/:messageId", adminAuth, async (req, res) => {
+router.put("/:ticketId/message/:messageId", verifyToken, async (req, res) => {
   try {
     const { message } = req.body;
 
@@ -162,7 +162,7 @@ router.put("/:ticketId/message/:messageId", adminAuth, async (req, res) => {
 /* =========================================================
    ❌ DELETE MESSAGE (SOFT DELETE - USER + ADMIN)
    ========================================================= */
-router.delete("/:ticketId/message/:messageId", adminAuth, async (req, res) => {
+router.delete("/:ticketId/message/:messageId", verifyToken, async (req, res) => {
   try {
     const ticket = await SupportTicket.findById(req.params.ticketId);
     if (!ticket) return res.status(404).json({ message: "Ticket not found" });
@@ -183,7 +183,7 @@ router.delete("/:ticketId/message/:messageId", adminAuth, async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 });
-router.put("/admin/:ticketId/message/:messageId", adminAuth, async (req, res) => {
+router.put("/admin/:ticketId/message/:messageId", verifyToken, async (req, res) => {
   try {
     const { message } = req.body;
 
