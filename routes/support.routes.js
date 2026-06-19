@@ -42,7 +42,7 @@ router.post("/open/:department", adminAuth, async (req, res) => {
 /* ================= USER SEND MESSAGE ================= */
 router.post(
   "/:id/message",
-  adminAuth,,
+  adminAuth,
   upload.single("image"),
   async (req, res) => {
     try {
