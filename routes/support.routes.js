@@ -3,6 +3,7 @@ import SupportTicket from "../models/SupportTicket.js";
 import verifyToken from "../middleware/verifyToken.js";
 import multer from "multer";
 import cloudinary from "../config/cloudinary.js";
+import adminAuth from "../middleware/adminAuth.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -87,7 +88,7 @@ router.post(
 );
 
 /* ================= ADMIN - GET ALL TICKETS ================= */
-router.get("/admin/all", verifyToken, async (req, res) => {
+router.get("/admin/all", adminAuth, async (req, res) => {
   try {
     const tickets = await SupportTicket.find()
       .populate("user", "name email")
