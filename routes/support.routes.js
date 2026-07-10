@@ -223,4 +223,30 @@ router.delete("/admin/:ticketId/message/:messageId", adminAuth, async (req, res)
     res.status(500).json({ message: "Delete failed" });
   }
 });
+router.get("/:id", verifyToken, async (req,res)=>{
+
+  try{
+
+    const ticket = await SupportTicket.findById(req.params.id);
+
+
+    if(!ticket){
+      return res.status(404).json({
+        message:"Ticket not found"
+      });
+    }
+
+
+    res.json(ticket);
+
+
+  }catch(error){
+
+    res.status(500).json({
+      message:"Failed loading ticket"
+    });
+
+  }
+
+});
 export default router;
